@@ -5,9 +5,12 @@ import {
     query, orderBy
 } from 'firebase/firestore';
 import { db } from '@/js/firebase'
+import { useStoreAuth } from '@/stores/storeAuth'
 
-const notesCollectionRef = collection(db, 'notes')
-const notesCollectionQuery = query(notesCollectionRef, orderBy('date', 'desc'))
+var notesCollectionRef
+var notesCollectionQuery
+
+let getNotesSnapshot = null
 
 export const useStoreNotes = defineStore('storeNotes', {
   state: () => {
@@ -26,9 +29,19 @@ export const useStoreNotes = defineStore('storeNotes', {
     }
   },
   actions: {
+    init() {
+        const storeAuth = useStoreAuth()
+
+        notesCollectionRef = collection(db, 'users', storeAuth.user.id, 'notes')
+        notesCollectionQuery = query(notesCollectionRef, orderBy('date', 'desc'))
+        this.getNotes()
+    },
     async getNotes() {
         this.notesLoaded = false
-        onSnapshot(notesCollectionQuery, (querySnapshot) => {
+
+        if (getNotesSnapshot) getNotesSnapshot() // unsubscribe from any active listener
+
+        getNotesSnapshot = onSnapshot(notesCollectionQuery, (querySnapshot) => {
             let notes = []
             querySnapshot.forEach((doc) => {
                 let note = {
@@ -39,9 +52,11 @@ export const useStoreNotes = defineStore('storeNotes', {
                 notes.push(note)
             })
             this.notes = notes
-            this.notesLoaded = true
-            
+            this.notesLoaded = true    
         })
+    },
+    clearNotes(){
+        this.notes = []
     },
     async addNote(newNoteContent) {
         let currentDate = new Date().getTime()
