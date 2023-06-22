@@ -53,7 +53,9 @@ export const useStoreNotes = defineStore('storeNotes', {
             })
             this.notes = notes
             this.notesLoaded = true    
-        })
+        }, error => {
+            console.log('error message: ', error.message)
+        } )
     },
     clearNotes(){
         this.notes = []
